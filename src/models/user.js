@@ -1,11 +1,12 @@
-const mongoose = require('mongoose')
-const validator = require('validator')
+const mongoose = require('mongoose');
+const validator = require('validator');
+const bcrypt = require('bcryptjs');
 
-const User = mongoose.model('User', {
+const userSchema = mongoose.Schema({
   name: {
     type: String,
     required: true,
-    trim: true
+    trim: true,
   },
   email: {
     type: String,
@@ -14,9 +15,9 @@ const User = mongoose.model('User', {
     lowercase: true,
     validate(value) {
       if (!validator.isEmail(value)) {
-        throw new Error('Email is invalid')
+        throw new Error('Email is invalid');
       }
-    }
+    },
   },
   password: {
     type: String,
@@ -25,19 +26,30 @@ const User = mongoose.model('User', {
     trim: true,
     validate(value) {
       if (value.toLowerCase().includes('password')) {
-        throw new Error('Password cannot contain "password"')
+        throw new Error('Password cannot contain "password"');
       }
-    }
+    },
   },
   age: {
     type: Number,
     default: 0,
     validate(value) {
       if (value < 0) {
-        throw new Error('Age must be a postive number')
+        throw new Error('Age must be a postive number');
       }
-    }
-  }
-})
+    },
+  },
+});
 
-module.exports = User
+// eslint-disable-next-line prefer-arrow-callback
+userSchema.pre('save', async function hashPassword(next) {
+  const user = this;
+  if (user.isModified('password')) {
+    user.password = await bcrypt.hash(user.password, 8);
+  }
+  next();
+});
+
+const User = mongoose.model('User', userSchema);
+
+module.exports = User;
