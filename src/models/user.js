@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const validator = require('validator');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 const userSchema = mongoose.Schema({
   name: {
@@ -10,6 +11,7 @@ const userSchema = mongoose.Schema({
   },
   email: {
     type: String,
+    unique: true,
     required: true,
     trim: true,
     lowercase: true,
@@ -39,7 +41,35 @@ const userSchema = mongoose.Schema({
       }
     },
   },
+  tokens: [{
+    token: {
+      type: String,
+      required: true,
+    },
+  }],
 });
+
+userSchema.methods.generateToken = async function generateToken() {
+  const user = this;
+  // eslint-disable-next-line no-underscore-dangle
+  const token = jwt.sign({ _id: user._id.toString() }, 'taskapp');
+  user.tokens = user.tokens.concat({ token });
+  await user.save();
+  return token;
+};
+
+userSchema.statics.findByCredantials = async (email, password) => {
+  // eslint-disable-next-line no-use-before-define
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new Error('Unable to login');
+  }
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) {
+    throw new Error('Unable to login');
+  }
+  return user;
+};
 
 // eslint-disable-next-line prefer-arrow-callback
 userSchema.pre('save', async function hashPassword(next) {
