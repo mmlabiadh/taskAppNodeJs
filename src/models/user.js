@@ -49,6 +49,14 @@ const userSchema = mongoose.Schema({
   }],
 });
 
+userSchema.methods.toJSON = function hideProperties() {
+  const user = this;
+  const userObject = user.toObject();
+  delete userObject.tokens;
+  delete userObject.password;
+  return userObject;
+};
+
 userSchema.methods.generateToken = async function generateToken() {
   const user = this;
   // eslint-disable-next-line no-underscore-dangle

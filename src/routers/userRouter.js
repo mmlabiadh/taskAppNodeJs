@@ -50,7 +50,7 @@ router.post('/users/login', async (req, res) => {
   }
 });
 
-router.patch('/users/:id', async (req, res) => {
+router.patch('/users/me', authMiddleware, async (req, res) => {
   const updates = Object.keys(req.body);
   const allowedUpdates = ['name', 'password', 'email', 'age'];
   const isValidOperation = updates.every((update) => allowedUpdates.includes(update));
@@ -58,25 +58,24 @@ router.patch('/users/:id', async (req, res) => {
     res.status(400).send({ error: 'Invalid updates' });
   }
   try {
-    const user = await User.findById(req.params.id);
+    const { user } = req;
     updates.forEach((update) => { user[update] = req.body[update]; });
     user.save();
-    if (!user) {
-      res.status(404).send();
-    }
     res.send(user);
   } catch (error) {
     res.status(400).send(error);
   }
 });
 
-router.delete('/users/:id', async (req, res) => {
+router.delete('/users/me', authMiddleware, async (req, res) => {
   try {
-    const user = await User.findByIdAndDelete(req.params.id);
-    if (!user) {
-      res.status(404).send(user);
-    }
-    res.send(user);
+    // eslint-disable-next-line no-underscore-dangle
+    // const user = await User.findByIdAndDelete(req.user._id);
+    // if (!user) {
+    //   res.status(404).send(user);
+    // }
+    await req.user.remove();
+    res.send(req.user);
   } catch (error) {
     res.status(500).send(error);
   }
