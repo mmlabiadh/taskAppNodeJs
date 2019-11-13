@@ -18,11 +18,29 @@ router.post('/tasks', authMiddleware, async (req, res) => {
   }
 });
 
+
+// GET /tasks?completed=true
+// GET /tasks?limit=10&&skip=20
+// GET /tasks?sortBy=createdAt:desc
 router.get('/tasks', authMiddleware, async (req, res) => {
+  const match = {};
+  const sort = {};
+  match.completed = req.query.completed === 'true';
+  if (req.query.sortBy) {
+    sort[req.query.sortBy.split(':')[0]] = req.query.sortBy.split(':')[1] === 'desc' ? -1 : 1;
+  }
   try {
     // eslint-disable-next-line no-underscore-dangle
     // const tasks = await Task.find({ owner: req.user._id });
-    await req.user.populate('tasks').execPopulate();
+    await req.user.populate({
+      path: 'tasks',
+      match,
+      options: {
+        limit: parseInt(req.query.limit, 10),
+        skip: parseInt(req.query.skip, 10),
+        sort,
+      },
+    }).execPopulate();
     res.status(200).send(req.user.tasks);
   } catch (error) {
     res.status(500).send(error);
